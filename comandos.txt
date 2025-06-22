@@ -1,0 +1,19 @@
+Comandos para atualizar o repositório:
+
+# Atualizar repositório (se tiver algo novo no GitHub)
+git pull
+
+# Trabalhar em arquivos (editar, criar, remover...)
+
+# Verificar status
+git status
+
+# Adicionar mudanças
+git add .
+
+# Fazer um commit
+git commit -m "Adiciona feature nova da telemetria"
+
+# Enviar para o GitHub
+git push
+
