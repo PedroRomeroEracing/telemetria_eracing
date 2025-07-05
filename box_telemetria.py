@@ -7,12 +7,12 @@ planilha_VCU = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
-'''
+
 planilha_BMS = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
-'''
+
 
 def on_connect(client, userdata, flags, rc): #conexão com o broker
     print("Conectado ao broker")
@@ -30,12 +30,13 @@ def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebi
     data = dados['data']
     id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
     filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
-    #filtro_id_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
-    if filtro_id_VCU.empty: #se não encontrar o id na planilha VCU
+    filtro_id_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
+    if filtro_id_BMS.empty: #se não encontrar o id na planilha BMS, procura na VCU
         extrai_planilha(id_hexadecimal, data, planilha_VCU)
-    #else:
-        #extrai_planilha(id_hexadecimal, data, planilha_BMS)
-def associação_mensagem_planilha(nome, campo_bit, planilha, data, lista_bytes_bits_invertidos):
+    else:
+        extrai_planilha(id_hexadecimal, data, planilha_BMS)
+
+def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, lista_bytes_bits_invertidos_concatenados):
     # associa o bit da planilha para aquela variável com o bit da mensagem recebida
     if campo_bit.startswith('bit('):
         range_bits = campo_bit.replace('bit(', '').replace(')', '').split('-')
@@ -58,47 +59,17 @@ def extrai_planilha(id_hexadecimal, data, planilha):
         bits_str = bin(byte)[2:].zfill(8)  # ex: '00001000'
         bits_str = bits_str[::-1]          # inverte: '00010000'
         lista_bytes_bits_invertidos.append(bits_str)
+    lista_bytes_bits_invertidos_concatenados = ''.join(lista_bytes_bits_invertidos)  # junta todos os bits LSB primeiro)
 
     # Extrair os dados relevantes da planilha
     for i in range(idx_inicio, idx_fim):
         nome = planilha.iloc[i, 1]      # coluna 1: nome da variável analisada
-        campo_bit = planilha.iloc[i, 2]     # coluna 2: especificação (bit(x-y), byte(x), etc)
-        associação_mensagem_planilha(nome,campo_bit,planilha,data,lista_bytes_bits_invertidos)
+        campo_bit = planilha.iloc[i, 2] # coluna 3: especificação (bit(x-y), byte(x), etc)
+        campo_multiplicador = planilha.iloc[i, 5]  # coluna 5: multiplicador
+        campo_descrição = planilha.iloc[i, 9]   # coluna 9: descrição
+        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, lista_bytes_bits_invertidos_concatenados)
 
-    '''
-    # Device status of the MOBILE 0
-    if id == 0x18FF00EA:
-        lista_bytes = []
-        for i in range(len(dados['data'])): # para cada byte na data
-            lista_bytes.append(dados['data'][i])    #adiciona os bytes na lista
-            #print(f"Byte {i+1}: {dados['data'][i]}") #teste 
-        print(lista_bytes)
-        lista_bytes = []
-        lista_bits = []
-        for byte in dados['data']: # para cada byte
-            bits_invertido = bin(byte)[2:].zfill(8) #00001000 que é uma str
-            bits = bits_invertido[::-1]
-            lista_bits.append(bits)
-            bits_invertido = ''
-            bits = ''
 
-        print(f"ID: {id}, Hora: {hora}, Bytes: {dados['data']}") # printa aqui para controle do que chega
-        DeviceSatate_M0 = lista_bits[0][:2]
-        ErrorLamp_M0 = lista_bits[0][2:4]
-        DeviceNunmber_M0 = lista_bits[0][4:8]
-        Clamp15_Status_M0 = lista_bits[1][:2]
-        PreCharge_M0 = lista_bits[1][2:4]
-        ErrorCode_M0 = ''.join(lista_bits[2:4])
-        act_DCBusVoltage_M0 = lista_bits[4]
-        act_DCBusPower_M0 = ''.join(lista_bits[5:7])
-        act_DeviceTemperature_M0 = lista_bits[7]
-        print(
-            f"DeviceSatate_M0: {DeviceSatate_M0}, ErrorLamp_M0: {ErrorLamp_M0}, "
-            f"DeviceNunmber_M0: {DeviceNunmber_M0}, Clamp15_Status_M0: {Clamp15_Status_M0}, "
-            f"PreCharge_M0: {PreCharge_M0}, ErrorCode_M0: {ErrorCode_M0}, act_DCBusVoltage_M0: {int(act_DCBusVoltage_M0)*0.25}, "
-            f"act_DCBusPower_M0: {int(act_DCBusPower_M0)*200}, act_DeviceTemperature_M0: {act_DeviceTemperature_M0}"
-        )
-        '''
 client = mqtt.Client()
 client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar
 client.subscribe("telemetria")
