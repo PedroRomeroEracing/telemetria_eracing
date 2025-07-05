@@ -1,22 +1,71 @@
 import paho.mqtt.client as mqtt
 import json
 import time
+import pandas as pd
 
-def on_connect(client, userdata, flags, rc):
+planilha_VCU = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
+    header=None, skip_blank_lines=True, comment='/'
+)
+'''
+planilha_BMS = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
+    header=None, skip_blank_lines=True, comment='/'
+)
+'''
+
+def on_connect(client, userdata, flags, rc): #conexão com o broker
     print("Conectado ao broker")
     client.subscribe("telemetria")
 
-def on_message(client, userdata, msg):
+def on_message(client, userdata, msg): #mensagem do broker
     dados = json.loads(msg.payload) #converte de string para dicionário
     # "Mensagem recebida:{'arbitration_id': 0, 'data': [1, 2, 3, 4, 5, 6, 7, 8], 'timestamp': 1234567890.123456}"
-    #print("Mensagem recebida:", dados)
     tratamento_mensagem(dados)
 
 def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebidas
     # filtrar por id
     id = dados['arbitration_id']
     hora = time.ctime(dados['timestamp'])
+    data = dados['data']
+    id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
+    filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
+    #filtro_id_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
+    if filtro_id_VCU.empty: #se não encontrar o id na planilha VCU
+        extrai_planilha(id_hexadecimal, data, planilha_VCU)
+    #else:
+        #extrai_planilha(id_hexadecimal, data, planilha_BMS)
+def associação_mensagem_planilha(nome, campo_bit, planilha, data, lista_bytes_bits_invertidos):
+    # associa o bit da planilha para aquela variável com o bit da mensagem recebida
+    if campo_bit.startswith('bit('):
+        range_bits = campo_bit.replace('bit(', '').replace(')', '').split('-')
+        bit_ini = int(range_bits[0])
+        bit_fim = int(range_bits[-1])
+        # 'bit(10-11)' -> bits = ['10', '11']
+
+
+
+def extrai_planilha(id_hexadecimal, data, planilha):
+    #Achar linha do id na planilha e pegar variável - bit
+    idxs = planilha.index[planilha[1] == id_hexadecimal].tolist()
+    idx_inicio = idxs[0] + 1 # ir para próxima linha
+    idx_fim = idx_inicio # inicializa o índice de fim
+    while idx_fim < len(planilha) and pd.notna(planilha.iloc[idx_fim, 1]): #enquanto a linha da coluna 1 não estiver vazia, vá pra próxima
+        idx_fim += 1 # incrementa o índice de fim
     
+    lista_bytes_bits_invertidos = []
+    for byte in data: #para cada byte na mensagem
+        bits_str = bin(byte)[2:].zfill(8)  # ex: '00001000'
+        bits_str = bits_str[::-1]          # inverte: '00010000'
+        lista_bytes_bits_invertidos.append(bits_str)
+
+    # Extrair os dados relevantes da planilha
+    for i in range(idx_inicio, idx_fim):
+        nome = planilha.iloc[i, 1]      # coluna 1: nome da variável analisada
+        campo_bit = planilha.iloc[i, 2]     # coluna 2: especificação (bit(x-y), byte(x), etc)
+        associação_mensagem_planilha(nome,campo_bit,planilha,data,lista_bytes_bits_invertidos)
+
+    '''
     # Device status of the MOBILE 0
     if id == 0x18FF00EA:
         lista_bytes = []
@@ -49,16 +98,7 @@ def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebi
             f"PreCharge_M0: {PreCharge_M0}, ErrorCode_M0: {ErrorCode_M0}, act_DCBusVoltage_M0: {int(act_DCBusVoltage_M0)*0.25}, "
             f"act_DCBusPower_M0: {int(act_DCBusPower_M0)*200}, act_DeviceTemperature_M0: {act_DeviceTemperature_M0}"
         )
-    '''
-    lista_bytes = []
-    for i in range(len(dados['data'])): # para cada byte na data
-        lista_bytes.append(dados['data'][i])    #adiciona os bytes na lista
-        #print(f"Byte {i+1}: {dados['data'][i]}") #teste 
-    print(lista_bytes)
-    lista_bytes = []
-    print(f"ID: {id}, Hora: {hora}, Bytes: {byte_1}, {byte_2}, {byte_3}, {byte_4}, {byte_5}, {byte_6}, {byte_7}, {byte_8}")
-    '''
-    
+        '''
 client = mqtt.Client()
 client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar
 client.subscribe("telemetria")
