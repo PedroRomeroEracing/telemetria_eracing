@@ -8,11 +8,6 @@ planilha_VCU = pd.read_csv(
     header=None, skip_blank_lines=True, comment='/'
 )
 
-planilha_BMS = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
-    header=None, skip_blank_lines=True, comment='/'
-)
-
 def on_connect(client, userdata, flags, rc): #conexão com o broker
     print("Conectado ao broker")
     client.subscribe("telemetria")
@@ -29,12 +24,14 @@ def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebi
     data = dados['data']
     id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
     filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
+    '''
     filtro_id_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
     if filtro_id_BMS.empty: #se não encontrar o id na planilha BMS, procura na VCU
         extrai_planilha(id_hexadecimal, data, planilha_VCU)
     else:
         extrai_planilha(id_hexadecimal, data, planilha_BMS)
-
+    '''
+    extrai_planilha(id_hexadecimal, data, planilha_VCU)
 def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados):
     # associa o bit da planilha para aquela variável com o bit da mensagem recebida
     if campo_bit.startswith('bit('):
@@ -50,13 +47,20 @@ def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_d
         # 'byte(0-1)' -> bytes = ['0', '1']
         if len(bytes_) == 1:
             # byte(0) -> [0*8 até 0*8 + 8] bits
-            mensagem = lista_bytes_bits_invertidos[byte_ini*8:byte_ini*8 + 8]  # pega o byte inteiro, está em bits concatenados
+            mensagem = string_bytes_bits_invertidos_concatenados[byte_ini*8:byte_ini*8 + 8]  # pega o byte inteiro, está em bits concatenados
+    
         else:
             byte_fim = int(bytes_[1]) # último byte
             mensagem = string_bytes_bits_invertidos_concatenados[byte_ini*8:byte_fim*8 + 8]
-
-    mensagem_int = int(mensagem, 2)  # converte de binário para inteiro
-    print(f"Mensagem '{nome}': bits :{mensagem_int*campo_multiplicador}, descrição: {campo_descrição}")
+        print(f'\n{mensagem}')
+    
+    string_bytes_bits_invertidos_concatenados = ''
+    lista_bytes_bits_invertidos = []
+    mensagem_invertida = mensagem[::-1]#desinverte e transforma em inteiro, mensagem de fato que chega
+    print(f'mensagem_invertida: {mensagem_invertida}')
+    mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
+    print(f'mensagem_int_binário: {mensagem_int_binário}')
+    print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
 
 def extrai_planilha(id_hexadecimal, data, planilha):
     #Achar linha do id na planilha e pegar variável - bit
@@ -72,12 +76,13 @@ def extrai_planilha(id_hexadecimal, data, planilha):
         bits_str = bits_str[::-1]          # inverte: '00010000'
         lista_bytes_bits_invertidos.append(bits_str)
     string_bytes_bits_invertidos_concatenados = ''.join(lista_bytes_bits_invertidos)  # junta todos os bits (LSB primeiro)
+    print(string_bytes_bits_invertidos_concatenados)
 
     # Extrair os dados relevantes da planilha
     for i in range(idx_inicio, idx_fim):
         nome = planilha.iloc[i, 1]      # coluna 1: nome da variável analisada
         campo_bit = planilha.iloc[i, 2] # coluna 3: especificação (bit(x-y), byte(x), etc)
-        campo_multiplicador = planilha.iloc[i, 5]  # coluna 5: multiplicador
+        campo_multiplicador = planilha.iloc[i, 6]  # coluna 6: multiplicador
         campo_descrição = planilha.iloc[i, 9]   # coluna 9: descrição
         associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados)
 
