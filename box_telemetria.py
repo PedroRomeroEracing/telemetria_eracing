@@ -5,11 +5,11 @@ import pandas as pd
 import csv
 from datetime import datetime
 import os
-# definimos o local onde vai ser salvo o log, o nome dele que vai mudar a parir do dia e hora e o caminho completo do arquivo de log (junção do path + nome que muda)
+
 pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
 nome_log = f'log{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
-# caminho para as planilhas CSV analisadas
+
 planilha_VCU = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
     header=None, skip_blank_lines=True, comment='/'
@@ -18,18 +18,19 @@ planilha_BMS = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
-planilha_ACD = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - ACD.csv',
-    header=None, skip_blank_lines=True, comment='/'
-)
-planilha_PT = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PT.csv',
+planilha_ACDC = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - ACDC.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_PAINEL = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PAINEL.csv',
     header=None, skip_blank_lines=True, comment='/'
+)   
+planilha_PTC = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PTC.csv',
+    header=None, skip_blank_lines=True, comment='/'
 )
+
 
 def on_connect(client, userdata, flags, rc): #conexão com o broker
     print("Conectado ao broker")
@@ -118,8 +119,7 @@ def salvar_csv(hora, nome, valor_log):
         escritor.writerow([hora, nome, valor_log])  # escreve a linha com os dados
 
 client = mqtt.Client()
-client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar ou IP da antena para FSAE
+client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar
 client.subscribe("telemetria")
 client.on_message = on_message
 client.loop_forever()
-
