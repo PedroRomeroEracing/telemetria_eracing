@@ -18,16 +18,16 @@ planilha_BMS = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
-planilha_ACDC = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - ACDC.csv',
+planilha_ACD = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - ACD.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_PAINEL = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PAINEL.csv',
     header=None, skip_blank_lines=True, comment='/'
 )   
-planilha_PTC = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PTC.csv',
+planilha_PT = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PT.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 
