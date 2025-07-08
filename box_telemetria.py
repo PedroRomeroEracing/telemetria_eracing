@@ -2,7 +2,14 @@ import paho.mqtt.client as mqtt
 import json
 import time
 import pandas as pd
-
+import csv
+from datetime import datetime
+import os
+# definimos o local onde vai ser salvo o log, o nome dele que vai mudar a parir do dia e hora e o caminho completo do arquivo de log (junção do path + nome que muda)
+pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
+nome_log = f'log{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv' #nome do arquivo de log de acordo com a data e hora
+caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
+# caminho para as planilhas CSV analisadas
 planilha_VCU = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
     header=None, skip_blank_lines=True, comment='/'
@@ -48,35 +55,6 @@ def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebi
         extrai_planilha(id_hexadecimal, data, planilha_BMS)
     '''
     extrai_planilha(id_hexadecimal, data, planilha_VCU)
-def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados):
-    # associa o bit da planilha para aquela variável com o bit da mensagem recebida
-    if campo_bit.startswith('bit('):
-        range_bits = campo_bit.replace('bit(', '').replace(')', '').split('-')
-        # 'bit(10-11)' -> bits = ['10', '11']
-        bit_ini = int(range_bits[0]) # primeiro bit
-        bit_fim = int(range_bits[1]) # último bit
-        mensagem = string_bytes_bits_invertidos_concatenados[bit_ini:bit_fim + 1]  # pega os bits da mensagem
-    
-    elif campo_bit.startswith('byte('):
-        bytes_ = campo_bit.replace('byte(', '').replace(')', '').split('-')
-        byte_ini = int(bytes_[0]) #primeiro byte
-        # 'byte(0-1)' -> bytes = ['0', '1']
-        if len(bytes_) == 1:
-            # byte(0) -> [0*8 até 0*8 + 8] bits
-            mensagem = string_bytes_bits_invertidos_concatenados[byte_ini*8:byte_ini*8 + 8]  # pega o byte inteiro, está em bits concatenados
-    
-        else:
-            byte_fim = int(bytes_[1]) # último byte
-            mensagem = string_bytes_bits_invertidos_concatenados[byte_ini*8:byte_fim*8 + 8]
-        print(f'\n{mensagem}')
-    
-    string_bytes_bits_invertidos_concatenados = ''
-    lista_bytes_bits_invertidos = []
-    mensagem_invertida = mensagem[::-1]#desinverte e transforma em inteiro, mensagem de fato que chega
-    print(f'mensagem_invertida: {mensagem_invertida}')
-    mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
-    print(f'mensagem_int_binário: {mensagem_int_binário}')
-    print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
 
 def extrai_planilha(id_hexadecimal, data, planilha):
     #Achar linha do id na planilha e pegar variável - bit
@@ -102,8 +80,45 @@ def extrai_planilha(id_hexadecimal, data, planilha):
         campo_descrição = planilha.iloc[i, 9]   # coluna 9: descrição
         associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados)
 
+def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados):
+    # associa o bit da planilha para aquela variável com o bit da mensagem recebida
+    if campo_bit.startswith('bit('):
+        range_bits = campo_bit.replace('bit(', '').replace(')', '').split('-')
+        # 'bit(10-11)' -> bits = ['10', '11']
+        bit_ini = int(range_bits[0]) # primeiro bit
+        bit_fim = int(range_bits[1]) # último bit
+        mensagem = string_bytes_bits_invertidos_concatenados[bit_ini:bit_fim + 1]  # pega os bits da mensagem
+    
+    elif campo_bit.startswith('byte('):
+        bytes_ = campo_bit.replace('byte(', '').replace(')', '').split('-')
+        byte_ini = int(bytes_[0]) #primeiro byte
+        # 'byte(0-1)' -> bytes = ['0', '1']
+        if len(bytes_) == 1:
+            # byte(0) -> [0*8 até 0*8 + 8] bits
+            mensagem = string_bytes_bits_invertidos_concatenados[byte_ini*8:byte_ini*8 + 8]  # pega o byte inteiro, está em bits concatenados
+    
+        else:
+            byte_fim = int(bytes_[1]) # último byte
+            mensagem = string_bytes_bits_invertidos_concatenados[byte_ini*8:byte_fim*8 + 8]
+    
+    string_bytes_bits_invertidos_concatenados = ''
+    lista_bytes_bits_invertidos = []
+    mensagem_invertida = mensagem[::-1]#desinverte e transforma em inteiro, mensagem de fato que chega
+    mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
+    print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
+    valor_log = mensagem_int_binário * float(campo_multiplicador)  # valor que vai no log salvo
+
+def salvar_csv(hora, nome, valor_log):
+    variável_arquivo = os.path.isfile(caminho_log) #variável do arquivo aberto
+    
+    with open(caminho_log, mode='a', newline='', encoding='utf-8') as arquivo_csv:
+        escritor = csv.writer(arquivo_csv)
+        if not variável_arquivo:
+            escritor.writerow(['Tempo', 'Nome', 'Valor'])  # cabeçalho do CSV
+        escritor.writerow([hora, nome, valor_log])  # escreve a linha com os dados
+
 client = mqtt.Client()
-client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar
+client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar ou IP da antena para FSAE
 client.subscribe("telemetria")
 client.on_message = on_message
 client.loop_forever()
