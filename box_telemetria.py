@@ -48,14 +48,18 @@ def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebi
     data = dados['data']
     id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
     filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
-    '''
-    filtro_id_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
-    if filtro_id_BMS.empty: #se não encontrar o id na planilha BMS, procura na VCU
+    #lógica para ver em qual planilha está o id
+    filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal]
+    if filtro_id_VCU.empty == False: #se encontrar o id na planilha VCU
         extrai_planilha(id_hexadecimal, data, planilha_VCU)
-    else:
+    elif planilha_BMS[planilha_BMS[1] == id_hexadecimal].empty == False: #se encontrar o id na planilha BMS
         extrai_planilha(id_hexadecimal, data, planilha_BMS)
-    '''
-    extrai_planilha(id_hexadecimal, data, planilha_VCU)
+    elif planilha_ACD[planilha_ACD[1] == id_hexadecimal].empty == False: #se encontrar o id na planilha ACD
+        extrai_planilha(id_hexadecimal, data, planilha_ACD)
+    elif planilha_PAINEL[planilha_PAINEL[1] == id_hexadecimal].empty == False: #se encontrar o id na planilha PAINEL
+        extrai_planilha(id_hexadecimal, data, planilha_PAINEL)
+    else: #só sobrou a planilha PT(Pt não pode, 13 é proibido)
+        extrai_planilha(id_hexadecimal, data, planilha_PT)
 
 def extrai_planilha(id_hexadecimal, data, planilha):
     #Achar linha do id na planilha e pegar variável - bit
