@@ -31,7 +31,10 @@ planilha_PT = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PT.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
-
+planilha_LV_BMS = pd.read_csv(
+    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - LV_BMS.csv',
+    header=None, skip_blank_lines=True, comment='/'
+)
 
 def on_connect(client, userdata, flags, rc): #conexão com o broker
     print("Conectado ao broker")
@@ -59,6 +62,8 @@ def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebi
         extrai_planilha(id_hexadecimal, data, planilha_ACD)
     elif planilha_PAINEL[planilha_PAINEL[1] == id_hexadecimal].empty == False: #se encontrar o id na planilha PAINEL
         extrai_planilha(id_hexadecimal, data, planilha_PAINEL)
+    elif planilha_LV_BMS[planilha_LV_BMS[1] == id_hexadecimal].empty == False: #se encontrar o id na planilha LV_BMS
+        extrai_planilha(id_hexadecimal, data, planilha_LV_BMS)
     else: #só sobrou a planilha PT(Pt não pode, 13 é proibido)
         extrai_planilha(id_hexadecimal, data, planilha_PT)
 
