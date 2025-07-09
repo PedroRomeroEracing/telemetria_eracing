@@ -5,7 +5,7 @@ import pandas as pd
 import csv
 from datetime import datetime
 import os
-
+#alteração do pedro
 pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
 nome_log = f'log{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
@@ -123,7 +123,7 @@ def salvar_csv(hora, nome, valor_log):
         escritor.writerow([hora, nome, valor_log])  # escreve a linha com os dados
 
 client = mqtt.Client()
-client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar
+client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar ou antena da FSAE
 client.subscribe("telemetria")
 client.on_message = on_message
 client.loop_forever()
