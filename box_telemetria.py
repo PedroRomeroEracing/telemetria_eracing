@@ -43,43 +43,43 @@ def on_connect(client, userdata, flags, rc): #conexão com o broker
 def on_message(client, userdata, msg): #mensagem do broker
     dados = json.loads(msg.payload) #converte de string para dicionário
     # "Mensagem recebida:{'arbitration_id': 0, 'data': [1, 2, 3, 4, 5, 6, 7, 8], 'timestamp': 1234567890.123456}"
-    tratamento_mensagem(dados)
+    tratamento_mensagem(dados,client,userdata,msg)
 
-def tratamento_mensagem(dados): #dados é um dicionário com as mensagens recebidas
+def tratamento_mensagem(dados,client,userdata,msg): #dados é um dicionário com as mensagens recebidas
     # filtrar por id
-    id = dados['arbitration_id']
-    hora = time.ctime(dados['timestamp'])
-    data = dados['data']
-    id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
-    filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
-    #lógica para ver em qual planilha está o id
-    filtro_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal]
-    filtro_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
-    filtro_ACD = planilha_ACD[planilha_ACD[1] == id_hexadecimal]
-    filtro_LV_BMS = planilha_LV_BMS[planilha_LV_BMS[1] == id_hexadecimal]
-    filtro_PAINEL = planilha_PAINEL[planilha_PAINEL[1] == id_hexadecimal]
-    filtro_PT = planilha_PT[planilha_PT[1] == id_hexadecimal]
+        id = dados['arbitration_id']
+        hora = time.ctime(dados['timestamp'])
+        data = dados['data']
+        id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
+        filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
+        #lógica para ver em qual planilha está o id
+        filtro_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal]
+        filtro_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
+        filtro_ACD = planilha_ACD[planilha_ACD[1] == id_hexadecimal]
+        filtro_LV_BMS = planilha_LV_BMS[planilha_LV_BMS[1] == id_hexadecimal]
+        filtro_PAINEL = planilha_PAINEL[planilha_PAINEL[1] == id_hexadecimal]
+        filtro_PT = planilha_PT[planilha_PT[1] == id_hexadecimal]
 
-    if filtro_VCU.empty == False: #se encontrar o id na planilha VCU
-            print('pegando VCU')
-            extrai_planilha(id_hexadecimal, data, planilha_VCU)
-    elif filtro_BMS.empty == False: #se encontrar o id na planilha BMS
-            print('pegando BMS')
-            extrai_planilha(id_hexadecimal, data, planilha_BMS)
-    elif filtro_ACD.empty == False: #se encontrar o id na planilha ACD
-            print('pegando ACD')
-            extrai_planilha(id_hexadecimal, data, planilha_ACD)
-    elif filtro_PAINEL.empty == False: #se encontrar o id na planilha PAINEL
-            print('pegando PAINEL')
-            extrai_planilha(id_hexadecimal, data, planilha_PAINEL)
-    elif filtro_LV_BMS.empty == False: #se encontrar o id na planilha LV_BMS
-            print('pegando LV_BMS')
-            extrai_planilha(id_hexadecimal, data, planilha_LV_BMS)
-    elif filtro_PT.empty == False: #só sobrou a planilha PT(Pt não pode, 13 é proibido)
-            print('pegando PT')
-            extrai_planilha(id_hexadecimal, data, planilha_PT)
-    else:
-            print(f'ID {id_hexadecimal} não encontrado em nenhuma planilha')
+        if filtro_VCU.empty == False: #se encontrar o id na planilha VCU
+                print('pegando VCU')
+                extrai_planilha(id_hexadecimal, data, planilha_VCU)
+        elif filtro_BMS.empty == False: #se encontrar o id na planilha BMS
+                print('pegando BMS')
+                extrai_planilha(id_hexadecimal, data, planilha_BMS)
+        elif filtro_ACD.empty == False: #se encontrar o id na planilha ACD
+                print('pegando ACD')
+                extrai_planilha(id_hexadecimal, data, planilha_ACD)
+        elif filtro_PAINEL.empty == False: #se encontrar o id na planilha PAINEL
+                print('pegando PAINEL')
+                extrai_planilha(id_hexadecimal, data, planilha_PAINEL)
+        elif filtro_LV_BMS.empty == False: #se encontrar o id na planilha LV_BMS
+                print('pegando LV_BMS')
+                extrai_planilha(id_hexadecimal, data, planilha_LV_BMS)
+        elif filtro_PT.empty == False: #só sobrou a planilha PT(Pt não pode, 13 é proibido)
+                print('pegando PT')
+                extrai_planilha(id_hexadecimal, data, planilha_PT)
+        else:
+                print(f'ID {id_hexadecimal} não encontrado em nenhuma planilha')
 
 def extrai_planilha(id_hexadecimal, data, planilha):
     #Achar linha do id na planilha e pegar variável - bit
@@ -107,16 +107,17 @@ def extrai_planilha(id_hexadecimal, data, planilha):
 
 def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados):
     # associa o bit da planilha para aquela variável com o bit da mensagem recebida
+    print(nome)
     if campo_bit.startswith('bit('):
         range_bits = campo_bit.replace('bit(', '').replace(')', '').split('-')
         if len(range_bits) == 1:
-            print(f'Mensagem de requisição do {nome}')
-        print(range_bits)
-        # 'bit(10-11)' -> bits = ['10', '11']
-        bit_ini = int(range_bits[0]) # primeiro bit
-        bit_fim = int(range_bits[1]) # último bit
-        mensagem = string_bytes_bits_invertidos_concatenados[bit_ini:bit_fim + 1]  # pega os bits da mensagem
-    
+             mensagem = string_bytes_bits_invertidos_concatenados[int(range_bits[0])]  # pega o bit único
+        else:
+            # 'bit(10-11)' -> bits = ['10', '11']
+            bit_ini = int(range_bits[0]) # primeiro bit
+            bit_fim = int(range_bits[1]) # último bit
+            mensagem = string_bytes_bits_invertidos_concatenados[bit_ini:bit_fim + 1]  # pega os bits da mensagem
+            
     elif campo_bit.startswith('byte('):
         bytes_ = campo_bit.replace('byte(', '').replace(')', '').split('-')
         byte_ini = int(bytes_[0]) #primeiro byte
@@ -131,8 +132,11 @@ def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_d
     
     string_bytes_bits_invertidos_concatenados = ''
     lista_bytes_bits_invertidos = []
-    mensagem_invertida = mensagem[::-1]#desinverte e transforma em inteiro, mensagem de fato que chega
-    mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
+    if mensagem == '':
+        mensagem_int_binário = 0
+    else:
+        mensagem_invertida = mensagem[::-1]#desinverte e transforma em inteiro, mensagem de fato que chega
+        mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
     print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
     valor_log = mensagem_int_binário * float(campo_multiplicador)  # valor que vai no log salvo
     #salvar_csv(datetime.now().strftime('%Y%m%d_%H%M%S'), nome, valor_log) 
