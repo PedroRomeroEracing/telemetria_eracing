@@ -62,26 +62,32 @@ def tratamento_mensagem(dados,client,userdata,msg): #dados é um dicionário com
 
         if filtro_VCU.empty == False: #se encontrar o id na planilha VCU
                 print('pegando VCU')
-                extrai_planilha(id_hexadecimal, data, planilha_VCU)
+                nome_planilha = 'VCU'
+                extrai_planilha(id_hexadecimal, data, planilha_VCU, nome_planilha)
         elif filtro_BMS.empty == False: #se encontrar o id na planilha BMS
                 print('pegando BMS')
-                extrai_planilha(id_hexadecimal, data, planilha_BMS)
+                nome_planilha = 'BMS'
+                extrai_planilha(id_hexadecimal, data, planilha_BMS, nome_planilha)
         elif filtro_ACD.empty == False: #se encontrar o id na planilha ACD
                 print('pegando ACD')
-                extrai_planilha(id_hexadecimal, data, planilha_ACD)
+                nome_planilha = 'ACD'
+                extrai_planilha(id_hexadecimal, data, planilha_ACD, nome_planilha)
         elif filtro_PAINEL.empty == False: #se encontrar o id na planilha PAINEL
                 print('pegando PAINEL')
-                extrai_planilha(id_hexadecimal, data, planilha_PAINEL)
+                nome_planilha = 'PAINEL'
+                extrai_planilha(id_hexadecimal, data, planilha_PAINEL, nome_planilha)
         elif filtro_LV_BMS.empty == False: #se encontrar o id na planilha LV_BMS
                 print('pegando LV_BMS')
-                extrai_planilha(id_hexadecimal, data, planilha_LV_BMS)
+                nome_planilha = 'LV_BMS'
+                extrai_planilha(id_hexadecimal, data, planilha_LV_BMS, nome_planilha)
         elif filtro_PT.empty == False: #só sobrou a planilha PT(Pt não pode, 13 é proibido)
                 print('pegando PT')
-                extrai_planilha(id_hexadecimal, data, planilha_PT)
+                nome_planilha = 'PT'
+                extrai_planilha(id_hexadecimal, data, planilha_PT, nome_planilha)
         else:
                 print(f'ID {id_hexadecimal} não encontrado em nenhuma planilha')
 
-def extrai_planilha(id_hexadecimal, data, planilha):
+def extrai_planilha(id_hexadecimal, data, planilha, nome_planilha):
     #Achar linha do id na planilha e pegar variável - bit
     idxs = planilha.index[planilha[1] == id_hexadecimal].tolist()
     idx_inicio = idxs[0] + 1 # ir para próxima linha
@@ -103,9 +109,9 @@ def extrai_planilha(id_hexadecimal, data, planilha):
         campo_bit = planilha.iloc[i, 2] # coluna 3: especificação (bit(x-y), byte(x), etc)
         campo_multiplicador = planilha.iloc[i, 6]  # coluna 6: multiplicador
         campo_descrição = planilha.iloc[i, 9]   # coluna 9: descrição
-        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados)
+        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha)
 
-def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados):
+def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha):
     # associa o bit da planilha para aquela variável com o bit da mensagem recebida
     print(nome)
     if campo_bit.startswith('bit('):
@@ -139,7 +145,7 @@ def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_d
         mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
     print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
     valor_log = mensagem_int_binário * float(campo_multiplicador)  # valor que vai no log salvo
-    #salvar_csv(datetime.now().strftime('%Y%m%d_%H%M%S'), nome, valor_log) 
+    salvar_csv(datetime.now().strftime('%Y%m%d_%H%M%S'), nome, valor_log) 
 
 def salvar_csv(hora, nome, valor_log):
     variável_arquivo = os.path.isfile(caminho_log) #variável do arquivo aberto
