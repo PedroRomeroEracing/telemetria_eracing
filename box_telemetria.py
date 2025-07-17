@@ -5,8 +5,13 @@ import pandas as pd
 import csv
 from datetime import datetime
 import os
-#alteração do pedro 
-#alteraçao da helena
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
+import threading
+
+#dicionário global para armazenar os valores por id e variável
+dicionario_ids = {}
 pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
 nome_log = f'log{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
@@ -109,9 +114,9 @@ def extrai_planilha(id_hexadecimal, data, planilha, nome_planilha):
         campo_bit = planilha.iloc[i, 2] # coluna 3: especificação (bit(x-y), byte(x), etc)
         campo_multiplicador = planilha.iloc[i, 6]  # coluna 6: multiplicador
         campo_descrição = planilha.iloc[i, 9]   # coluna 9: descrição
-        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha)
+        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha, id_hexadecimal)
 
-def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha):
+def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha, id_hexadecimal):
     # associa o bit da planilha para aquela variável com o bit da mensagem recebida
     print(nome)
     if campo_bit.startswith('bit('):
@@ -146,6 +151,7 @@ def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_d
     print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
     valor_log = mensagem_int_binário * float(campo_multiplicador)  # valor que vai no log salvo
     salvar_csv(datetime.now().strftime('%Y%m%d_%H%M%S'), nome, valor_log) 
+    salvar_dicionário(nome,valor_log,id_hexadecimal)
 
 def salvar_csv(hora, nome, valor_log):
     variável_arquivo = os.path.isfile(caminho_log) #variável do arquivo aberto
@@ -155,6 +161,47 @@ def salvar_csv(hora, nome, valor_log):
         if not variável_arquivo:
             escritor.writerow(['Tempo', 'Nome', 'Valor'])  # cabeçalho do CSV
         escritor.writerow([hora, nome, valor_log])  # escreve a linha com os dados
+
+def salvar_dicionário(nome, valor_log, id_hexadecimal):
+    # lista dos ids nas planilhas de temperaturas, velocidades e tensões (foi na mão)
+    lista_IDs_analisados = [
+        '0x19B50100','0x19B50101','0x19B50102','0x19B50104',
+        '0x19B50105','0x19B50106','0x19B50107','0x19B50108',
+        '0x19B50109','0x19B5010A','0x19B5010B','0x19B50800',
+        '0x19B50801','0x19B50802','0x19B50803','0x19B50007',
+        '0x19B70100','0x19B70800','0x19B70007','0x18FF00EA',
+        '0x18FF00F7','0x18FF01EA','0x18FF02EA','0x18FF01F7',
+        '0x18FF02F7','0x18FF0EF7','0x18FF0DEA',''
+    ]
+    global dicionario_ids # mandar um dicionário que dentro dele tem outros filtrados com chave o ID e o valor a lista de valores_log atualizados
+    if id_hexadecimal in lista_IDs_analisados:
+        if id_hexadecimal not in dicionario_ids:
+            dicionario_ids[id_hexadecimal] = {}
+        if nome not in dicionario_ids[id_hexadecimal]:
+            dicionario_ids[id_hexadecimal][nome] = []
+        dicionario_ids[id_hexadecimal][nome].append(valor_log)
+    return dicionario_ids
+
+class DicionarioPublisher(Node):
+    def __init__(self):
+        super().__init__('telemetria_publisher')
+        self.publisher_ = self.create_publisher(String, 'telemetria', 10)
+        self.timer = self.create_timer(1.0, self.timer_callback)  # publica a cada 1 segundo
+
+    def timer_callback(self):
+        msg = String()
+        msg.data = json.dumps(dicionario_ids)
+        self.publisher_.publish(msg)
+
+def start_ros_publisher():
+    rclpy.init()
+    node = DicionarioPublisher()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+ros_thread = threading.Thread(target=start_ros_publisher, daemon=True)
+ros_thread.start()
 
 client = mqtt.Client()
 client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar ou antena da FSAE
