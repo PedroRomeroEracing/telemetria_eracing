@@ -17,3 +17,12 @@ git commit -m "Adiciona feature nova da telemetria"
 # Enviar para o GitHub
 git push
 
+#Comandos para usar ROS:
+
+#primeiro, depois de qualquer atualzação
+colcon build no diretório da pasta ros2
+
+setup ~/.bashrc
+
+ros2 run box_backend box_telemetria 
+

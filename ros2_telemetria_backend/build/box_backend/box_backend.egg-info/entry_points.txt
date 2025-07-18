@@ -1,0 +1,3 @@
+[console_scripts]
+box_telemetria = box_backend.box_telemetria:main
+
