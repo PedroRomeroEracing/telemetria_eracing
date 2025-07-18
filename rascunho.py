@@ -5,29 +5,10 @@ import pandas as pd
 import csv
 from datetime import datetime
 import os
-import threading
-import queue
-import tkinter as tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import atexit
-
-#fila global no início
-data_queue = queue.Queue()
 
 pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
 nome_log = f'log{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
-
-#cria o arquivo CSV que vai salvar os logs sem fechar e abrir ele
-variavel_arquivo_existe = os.path.isfile(caminho_log) # verifica se o arquivo já existe
-arquivo_csv = open(caminho_log, mode='a', newline='', encoding='utf-8') #abre o arquivo uma única vez em modo append
-escritor_csv = csv.writer(arquivo_csv)
-#escreve a primeira linha caso o arquivo seja novo
-if not variavel_arquivo_existe:
-    escritor_csv.writerow(['Tempo', 'Nome', 'Valor'])
-atexit.register(arquivo_csv.close) #garante que o arquivo será fechado
 
 planilha_VCU = pd.read_csv(
     r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
@@ -80,26 +61,32 @@ def tratamento_mensagem(dados,client,userdata,msg): #dados é um dicionário com
 
         if filtro_VCU.empty == False: #se encontrar o id na planilha VCU
                 print('pegando VCU')
-                extrai_planilha(id_hexadecimal, data, planilha_VCU)
+                nome_planilha = 'VCU'
+                extrai_planilha(id_hexadecimal, data, planilha_VCU, nome_planilha)
         elif filtro_BMS.empty == False: #se encontrar o id na planilha BMS
                 print('pegando BMS')
-                extrai_planilha(id_hexadecimal, data, planilha_BMS)
+                nome_planilha = 'BMS'
+                extrai_planilha(id_hexadecimal, data, planilha_BMS, nome_planilha)
         elif filtro_ACD.empty == False: #se encontrar o id na planilha ACD
                 print('pegando ACD')
-                extrai_planilha(id_hexadecimal, data, planilha_ACD)
+                nome_planilha = 'ACD'
+                extrai_planilha(id_hexadecimal, data, planilha_ACD, nome_planilha)
         elif filtro_PAINEL.empty == False: #se encontrar o id na planilha PAINEL
                 print('pegando PAINEL')
-                extrai_planilha(id_hexadecimal, data, planilha_PAINEL)
+                nome_planilha = 'PAINEL'
+                extrai_planilha(id_hexadecimal, data, planilha_PAINEL, nome_planilha)
         elif filtro_LV_BMS.empty == False: #se encontrar o id na planilha LV_BMS
                 print('pegando LV_BMS')
-                extrai_planilha(id_hexadecimal, data, planilha_LV_BMS)
+                nome_planilha = 'LV_BMS'
+                extrai_planilha(id_hexadecimal, data, planilha_LV_BMS, nome_planilha)
         elif filtro_PT.empty == False: #só sobrou a planilha PT(Pt não pode, 13 é proibido)
                 print('pegando PT')
-                extrai_planilha(id_hexadecimal, data, planilha_PT)
+                nome_planilha = 'PT'
+                extrai_planilha(id_hexadecimal, data, planilha_PT, nome_planilha)
         else:
                 print(f'ID {id_hexadecimal} não encontrado em nenhuma planilha')
 
-def extrai_planilha(id_hexadecimal, data, planilha):
+def extrai_planilha(id_hexadecimal, data, planilha, nome_planilha):
     #Achar linha do id na planilha e pegar variável - bit
     idxs = planilha.index[planilha[1] == id_hexadecimal].tolist()
     idx_inicio = idxs[0] + 1 # ir para próxima linha
@@ -121,9 +108,9 @@ def extrai_planilha(id_hexadecimal, data, planilha):
         campo_bit = planilha.iloc[i, 2] # coluna 3: especificação (bit(x-y), byte(x), etc)
         campo_multiplicador = planilha.iloc[i, 6]  # coluna 6: multiplicador
         campo_descrição = planilha.iloc[i, 9]   # coluna 9: descrição
-        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados)
+        associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha)
 
-def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados):
+def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_descrição, planilha, data, lista_bytes_bits_invertidos, string_bytes_bits_invertidos_concatenados, nome_planilha):
     # associa o bit da planilha para aquela variável com o bit da mensagem recebida
     print(nome)
     if campo_bit.startswith('bit('):
@@ -157,70 +144,20 @@ def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_d
         mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
     print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
     valor_log = mensagem_int_binário * float(campo_multiplicador)  # valor que vai no log salvo
-    hora_atual = datetime.now()
-    data_queue.put((hora_atual, nome, valor_log))
-    # salvar os dados na planilha CSV
     salvar_csv(datetime.now().strftime('%Y%m%d_%H%M%S'), nome, valor_log) 
 
-def iniciar_tkinter_grafico():
-    root = tk.Tk() #função que gerencia a janela do gráfico
-    root.title("Telemetria")
-
-    #variáveis para o gráfico
-    variaveis_disponiveis = ['act_DCBusPower M0', 'act_DCBusPower M13',
-                             'setp_DcLinkVoltage',
-    ]
-
-    variavel_selecionada = tk.StringVar()
-    variavel_selecionada.set(variaveis_disponiveis[0])  # valor inicial
-
-    #Dropdown para seleção da variável
-    dropdown = tk.OptionMenu(root, variavel_selecionada, *variaveis_disponiveis)
-    dropdown.pack()
-
-    fig, ax = plt.subplots(figsize=(8, 4)) #cria a figura e os eixos do gráfico em polegadas (8,4)
-    #configurações padrão matplotlib + tinker
-    canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas.get_tk_widget().pack()
-    #listas vazias para armazenar os dados do gráfico
-    tempos = []
-    valores = []
-    # função para atualizar internamente o gráfico
-    def update_plot():
-        while not data_queue.empty():
-            hora, nome, valor = data_queue.get()
-            if nome == variavel_selecionada.get():  #escolhemos a variável selecionada no dropdown
-                tempos.append(hora)
-                valores.append(valor)
-                if len(tempos) > 100:  #limitar tamanho do gráfico até os últimos 100 pontos
-                    tempos.pop(0)
-                    valores.pop(0)
-        #padrão, limpa o gráfico e plota os novos dados
-        ax.clear()
-        ax.plot(tempos, valores, marker='o')
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%M:%S'))
-        ax.xaxis.set_major_locator(mdates.SecondLocator(interval=5)) #traços no eixo x a cada 5 segundos
-        ax.set_title(f"{variavel_selecionada.get()}")
-        ax.set_xlabel("Tempo")
-        ax.set_ylabel("Valor")
-        fig.autofmt_xdate()
-        canvas.draw()
-
-        root.after(500, update_plot)  # atualiza a cada 500 ms
-
-    update_plot()
-    root.mainloop()
-
 def salvar_csv(hora, nome, valor_log):
-    escritor_csv.writerow([hora, nome, valor_log])
-    arquivo_csv.flush()  #escrita em disco sem fechar o arquivo
+    variável_arquivo = os.path.isfile(caminho_log) #variável do arquivo aberto
+    
+    with open(caminho_log, mode='a', newline='', encoding='utf-8') as arquivo_csv:
+        escritor = csv.writer(arquivo_csv)
+        if not variável_arquivo:
+            escritor.writerow(['Tempo', 'Nome', 'Valor'])  # cabeçalho do CSV
+        escritor.writerow([hora, nome, valor_log])  # escreve a linha com os dados
 
 client = mqtt.Client()
 client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar ou antena da FSAE
 client.subscribe("telemetria")
 client.on_message = on_message
-#MQTT em thread separada para tankar a interface gráfica do Tkinter
-mqtt_thread = threading.Thread(target=lambda: client.loop_forever())
-mqtt_thread.daemon = True
-mqtt_thread.start()
-iniciar_tkinter_grafico()
+client.loop_forever()
+
