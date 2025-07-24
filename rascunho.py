@@ -5,7 +5,8 @@ import pandas as pd
 import csv
 from datetime import datetime
 import os
-
+#alteração do pedro 
+#alteraçao da helena
 pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
 nome_log = f'log{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
