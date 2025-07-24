@@ -56,8 +56,19 @@ def tratamento_mensagem(dados,client,userdata,msg): #dados é um dicionário com
         hora = time.ctime(dados['timestamp'])
         data = dados['data']
         id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
-        filtro_id_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal] # retorna a linha da planilha que tem o id hexadecimal
-        #lógica para ver em qual planilha está o id
+        #mensagens INS
+        if id == '123': # 123 = [0,1,2,3]
+            aceleração_x = (data[1] << 8) | data[0]  
+            aceleração_y = (data[3] << 8) | data[2]  
+        #0x7B é 123 em decimal
+        dicionario_ids['0x7B'] = {}
+        if 'aceleração_x' not in dicionario_ids['0x7B']:
+            dicionario_ids['0x7B']['aceleração_x'] = []
+        elif 'aceleração_y' not in dicionario_ids['0x7B']:
+            dicionario_ids['0x7B']['aceleração_y'] = []
+        dicionario_ids['0x7B']['aceleração_x'].append(aceleração_x)
+        dicionario_ids['0x7B']['aceleração_y'].append(aceleração_y)
+        
         filtro_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal]
         filtro_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
         filtro_ACD = planilha_ACD[planilha_ACD[1] == id_hexadecimal]
