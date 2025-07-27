@@ -160,7 +160,7 @@ def associação_mensagem_planilha(nome, campo_bit, campo_multiplicador, campo_d
         mensagem_invertida = mensagem[::-1]#desinverte e transforma em inteiro, mensagem de fato que chega
         mensagem_int_binário = int((mensagem_invertida), 2)  # converte de binário para inteiro
     print(f"Mensagem '{nome}': bits :{mensagem_int_binário*float(campo_multiplicador)}, descrição: {campo_descrição}")
-    valor_log = mensagem_int_binário * float(campo_multiplicador)  # valor que vai no log salvo
+    valor_log = mensagem_int_binário / float(campo_multiplicador)  # valor que vai no log salvo
     salvar_csv(datetime.now().strftime('%Y%m%d_%H%M%S'), nome, valor_log) 
     salvar_dicionário(nome,valor_log,id_hexadecimal)
 
