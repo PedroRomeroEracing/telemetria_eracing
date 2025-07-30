@@ -1,0 +1,35 @@
+#!/bin/bash
+
+echo "[INFO] Ativando interfaces CAN..."
+
+# CAN0
+sudo ip link set can0 down 2>/dev/null
+sudo ip link set can0 type can bitrate 500000
+sudo ip link set can0 up
+echo "[OK] CAN0 configurada."
+
+# CAN1
+sudo ip link set can1 down 2>/dev/null
+sudo ip link set can1 type can bitrate 500000
+sudo ip link set can1 up
+echo "[OK] CAN1 configurada."
+
+echo "[INFO] Iniciando códigos..."
+
+#caminho para os scripts
+
+DIR="/home/usuario/meu_projeto"
+
+python3 $DIR/codigo1.py &
+PID1=$!
+
+python3 $DIR/codigo2.py &
+PID2=$!
+
+python3 $DIR/codigo3.py &
+PID3=$!
+
+echo "[OK] Todos os processos iniciados."
+echo "PIDs: $PID1 $PID2 $PID3"
+
+wait
