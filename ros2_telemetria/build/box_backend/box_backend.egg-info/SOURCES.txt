@@ -9,7 +9,7 @@ setup.py
 ../../build/box_backend/box_backend.egg-info/top_level.txt
 ../../build/box_backend/box_backend.egg-info/zip-safe
 box_backend/__init__.py
-box_backend/box_telemetria.py
+box_backend/box_backend.py
 resource/box_backend
 test/test_copyright.py
 test/test_flake8.py
