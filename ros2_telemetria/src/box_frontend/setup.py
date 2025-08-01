@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'box_telemetria_frontend= box_frontend.box_telemetria_frontend:main'
+            'box_frontend= box_frontend.box_frontend:main'
         ],
     },
 )
