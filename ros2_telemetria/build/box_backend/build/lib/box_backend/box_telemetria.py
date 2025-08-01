@@ -218,16 +218,6 @@ class DicionarioPublisher(Node):
         msg.data = json.dumps(dicionario_ids)
         self.publisher_.publish(msg)
 
-    def printar(self, x):
-        return self.get_logger().info(str(x))
-
-def start_ros_publisher():
-    rclpy.init()
-    node = DicionarioPublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
 def start_ros_publisher():
     rclpy.init()
     node = DicionarioPublisher()

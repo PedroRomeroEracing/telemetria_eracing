@@ -1,3 +1,3 @@
 [console_scripts]
-box_telemetria = box_backend.box_telemetria:main
+box_backend = box_backend.box_backend:main
 
