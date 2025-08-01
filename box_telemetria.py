@@ -12,32 +12,33 @@ import threading
 
 #dicionário global para armazenar os valores por id e variável
 dicionario_ids = {}
-pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
+#pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
+pasta_dados = r'/home/pedroromero/telemetria_eracing/componentes_csv_linux'
 nome_log = f'log{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
 
 planilha_VCU = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - VCU.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_BMS = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_ACD = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - ACD.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - ACD.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_PAINEL = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PAINEL.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - PAINEL.csv',
     header=None, skip_blank_lines=True, comment='/'
 )   
 planilha_PT = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PT.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - PT.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_LV_BMS = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - LV_BMS.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - LV_BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 

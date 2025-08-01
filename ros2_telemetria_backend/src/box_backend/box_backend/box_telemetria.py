@@ -12,63 +12,77 @@ import threading
 
 #dicionário global para armazenar os valores por id e variável
 dicionario_ids = {}
-pasta_dados = r'c:\Users\galag\OneDrive\DV\telemetria_eracing\dados_csv' #pasta onde vai salvar os logs
+pasta_dados = r'/home/pedroromero/telemetria_eracing/componentes_csv_linux'
 nome_log = f'log{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv' #nome do arquivo de log de acordo com a data e hora
 caminho_log = os.path.join(pasta_dados, nome_log) #caminho completo do arquivo de log
 
 planilha_VCU = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - VCU.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - VCU.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_BMS = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - BMS.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_ACD = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - ACD.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - ACD.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_PAINEL = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PAINEL.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - PAINEL.csv',
     header=None, skip_blank_lines=True, comment='/'
 )   
 planilha_PT = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - PT.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - PT.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 planilha_LV_BMS = pd.read_csv(
-    r'c:\Users\galag\OneDrive\DV\telemetria_eracing\componentes_csv\CAN Description 2025 - LV_BMS.csv',
+    r'/home/pedroromero/telemetria_eracing/componentes_csv_linux/CAN Description 2025 - LV_BMS.csv',
     header=None, skip_blank_lines=True, comment='/'
 )
 
 def on_connect(client, userdata, flags, rc): #conexão com o broker
-    print("Conectado ao broker")
+    logger = userdata
+    if logger:
+        logger.info("Conectado ao broker")
     client.subscribe("telemetria")
 
 def on_message(client, userdata, msg): #mensagem do broker
+    logger = userdata
     dados = json.loads(msg.payload) #converte de string para dicionário
     # "Mensagem recebida:{'arbitration_id': 0, 'data': [1, 2, 3, 4, 5, 6, 7, 8], 'timestamp': 1234567890.123456}"
-    tratamento_mensagem(dados,client,userdata,msg)
-
-def tratamento_mensagem(dados,client,userdata,msg): #dados é um dicionário com as mensagens recebidas
+    tratamento_mensagem(dados,client,userdata,msg,logger)
+    
+def tratamento_mensagem(dados,client,userdata,msg,logger): #dados é um dicionário com as mensagens recebidas
     # filtrar por id
         id = dados['arbitration_id']
         hora = time.ctime(dados['timestamp'])
         data = dados['data']
         id_hexadecimal = f'0x{id:08X}' #volta para hexa para o pandas ler na planilha
-        #mensagens INS
-        if id == '123': # 123 = [0,1,2,3]
-            aceleração_x = (data[1] << 8) | data[0]  
-            aceleração_y = (data[3] << 8) | data[2]  
-        #0x7B é 123 em decimal
-        dicionario_ids['0x7B'] = {}
-        if 'aceleração_x' not in dicionario_ids['0x7B']:
-            dicionario_ids['0x7B']['aceleração_x'] = []
-        elif 'aceleração_y' not in dicionario_ids['0x7B']:
-            dicionario_ids['0x7B']['aceleração_y'] = []
-        dicionario_ids['0x7B']['aceleração_x'].append(aceleração_x)
-        dicionario_ids['0x7B']['aceleração_y'].append(aceleração_y)
         
+        if logger:
+            logger.info(f"ID recebido: {id_hexadecimal}")
+        else:
+            print(f"[LOG Fallback] ID recebido: {id_hexadecimal}")
+
+        #mensagens INS
+        if id == 123: # 123 = [0,1,2,3]
+            # não faz sentido mas funciona, canking manda invertido
+            aceleracao_x = (data[0] << 8) | data[1]  #Byte 1 LSB, desloca byte 0 8 para esquerda
+            aceleracao_y = (data[2] << 8) | data[3]  #Byte 3 LSB
+            (aceleracao_x,aceleracao_y)
+            #0x7B é 123 em decimal
+            if '0x7B' not in dicionario_ids:
+                dicionario_ids['0x7B'] = {}
+
+            if 'aceleracao_x' not in dicionario_ids['0x7B']:
+                dicionario_ids['0x7B']['aceleracao_x'] = []
+            if 'aceleracao_y' not in dicionario_ids['0x7B']:
+                dicionario_ids['0x7B']['aceleracao_y'] = []
+            dicionario_ids['0x7B']['aceleracao_x'].append(aceleracao_x)
+            dicionario_ids['0x7B']['aceleracao_y'].append(aceleracao_y)
+            logger.info(str(dicionario_ids))
+
         filtro_VCU = planilha_VCU[planilha_VCU[1] == id_hexadecimal]
         filtro_BMS = planilha_BMS[planilha_BMS[1] == id_hexadecimal]
         filtro_ACD = planilha_ACD[planilha_ACD[1] == id_hexadecimal]
@@ -207,18 +221,24 @@ class DicionarioPublisher(Node):
 def start_ros_publisher():
     rclpy.init()
     node = DicionarioPublisher()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    return node
 
 def main():
-    ros_thread = threading.Thread(target=start_ros_publisher, daemon=True)
-    ros_thread.start()
-    client = mqtt.Client()
-    client.connect("172.20.10.2", 1883)  #IP do broker, proprio notebook para se escutar ou antena da FSAE
-    client.subscribe("telemetria")
+
+    rclpy.init()
+    node = DicionarioPublisher()
+
+    client = mqtt.Client(userdata=node.get_logger())
+    client.on_connect = on_connect
     client.on_message = on_message
+
+    client.connect("172.20.10.2", 1883)
+    client.subscribe("telemetria")
+    ros_thread = threading.Thread(target=rclpy.spin, args=(node,), daemon=True)
+    ros_thread.start()
     client.loop_forever()
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

@@ -26,3 +26,5 @@ setup ~/.bashrc
 
 ros2 run box_backend box_telemetria 
 
+usr/bin/mosquitto
+mosquitto -v -c meu.config
